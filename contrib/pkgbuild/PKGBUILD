@@ -1,0 +1,25 @@
+# Maintainer: Alex Minghella <a@minghella.net>
+pkgname=syncup
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Synchronise a local maildir store with a remote"
+arch=('any')
+license=('custom:0BSD')
+depends=('isync' 'notmuch')
+makedepends=('asciidoctor' 'lzip' 'make')
+options=('zipman')
+source=("https://git.minghella.net/pub/scm/${pkgname}.git/snapshot/${pkgname}-${pkgver}.tar.lz")
+sha256sums=('c941f7948774af8c8873e5f683c25579877136207245f3f9e38b49753c01e9ea')
+
+build()
+{
+	cd "${pkgname}-${pkgver}"
+	make PREFIX="/usr"
+}
+
+package()
+{
+	cd "${pkgname}-${pkgver}"
+	make DESTDIR="${pkgdir}/" PREFIX="/usr" install
+	install -D -m 0644 "LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

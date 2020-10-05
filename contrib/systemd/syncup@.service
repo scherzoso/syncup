@@ -1,0 +1,7 @@
+[Unit]
+Description=mailbox synchronisation service (%i)
+After=network.target network-online.target
+
+[Service]
+Type=simple
+ExecStart=syncup %h/%I

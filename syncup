@@ -1,0 +1,267 @@
+#! /usr/bin/env sh
+# SPDX-License-Identifier: 0BSD
+#
+# Dependencies:
+# - date(1)
+# - find(1)
+# - flock(1)
+# - mbsync(1)
+# - notmuch(1)
+# -----------------------------------------------------------------------------
+
+syncup_help="\
+usage: ${0##*/} [-hv] [-C <file>] [-H <path>] [-c <file>] [<maildir-root>]
+
+Use mbsync(1) to synchronise a local maildir collection with a remote, run
+notmuch-new(1) on the synchronised local store, and run appropriate pre- and
+post-sync hooks.
+
+Options:
+ -C <file>    Use <file> as the configuration file for notmuch(1).
+ -H <path>    Look for pre- and post-sync hooks in <path>. A relative <path> is
+              resolved relative to <maildir-root>.
+ -c <file>    Use <file> as the configuration file for mbsync(1).
+ -h           Display this help text.
+ -v           Enable verbose output.
+"
+
+: "${XDG_CACHE_HOME:="${HOME}/.cache"}"
+: "${XDG_CONFIG_HOME:="${HOME}/.config"}"
+: "${XDG_DATA_HOME:="${HOME}/.local/share"}"
+
+: "${SYNCUP_HOOK_DIR:=""}"
+: "${SYNCUP_LOCK_FILE:="${XDG_RUNTIME_DIR:-"${XDG_CACHE_HOME}"}/syncup.lock"}"
+: "${SYNCUP_MBSYNC_CONFIG:="${XDG_CONFIG_HOME}/mbsync/mbsyncrc"}"
+: "${SYNCUP_NOTMUCH_CONFIG:="${NOTMUCH_CONFIG:-"${XDG_CONFIG_HOME}/notmuch/notmuch.config"}"}"
+: "${SYNCUP_ROOT_DIR:=""}"
+: "${SYNCUP_SKIP_POST:="n"}"
+: "${SYNCUP_SKIP_PRE:="n"}"
+: "${SYNCUP_VERBOSE:="n"}"
+
+if ! command -v flock >/dev/null 2>&1; then
+	fatal "unable to locate flock(1)"
+fi
+
+if ! command -v mbsync >/dev/null 2>&1; then
+	fatal "unable to locate mbsync(1)"
+fi
+
+if ! command -v notmuch >/dev/null 2>&1; then
+	fatal "unable to locate notmuch(1)"
+fi
+
+_do_printf()
+{
+	_do_printf_fmt="${1}"
+	shift
+
+	# shellcheck disable=SC2059
+	printf "${_do_printf_fmt}\\n" "${@}" >&2
+}
+
+checkyn()
+{
+	case "${1}" in
+	[Yy1]|[Yy][Ee][Ss])
+		return 0
+		;;
+	[Nn0]|[Nn][Oo])
+		return 1
+		;;
+	*)
+		return 2
+		;;
+	esac
+}
+
+msg()
+{
+	_msg_fmt="${1}"
+	shift
+
+	_do_printf "%s: ${_msg_fmt}" "${0##*/}" "${@}"
+}
+
+vmsg()
+{
+	if checkyn "${SYNCUP_VERBOSE}"; then
+		msg "${@}"
+	fi
+}
+
+error()
+{
+	_error_fmt="${1}"
+	shift
+
+	_do_printf "%s: error: ${_error_fmt}" "${0##*/}" "${@}"
+}
+
+fatal()
+{
+	_fatal_fmt="${1}"
+	shift
+
+	_do_printf "%s: fatal: ${_fatal_fmt}" "${0##*/}" "${@}"
+	exit 126
+}
+
+_dir_isempty()
+{
+	if [ -n "$(find -L "${1}" -maxdepth 0 -type d -empty)" ]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+_do_hooks()
+{
+	find -L "${1}" -maxdepth 1 -executable -type f |
+	while read -r _do_hooks_h; do
+		msg "  -> %s" "${_do_hooks_h#${1}/}"
+
+		(
+			export SYNCUP_VERBOSE="${SYNCUP_VERBOSE}"
+			export MAIL_DIR="${SYNCUP_ROOT_DIR}"
+			exec "${_do_hooks_h}"
+		)
+
+		if [ "${?}" -ne 0 ]; then
+			msg "     [failure]"
+			exit 126
+		fi
+	done
+
+	# Executing exit(1) above only exits the implicit subshell of the
+	# read-while loop. We need to actually stop execution of the script
+	# here.
+	if [ "${?}" -eq 126 ]; then
+		fatal "hook failure"
+	fi
+}
+
+_do_mbsync()
+{
+	vmsg "  -> using mbsync(1) configuration: %s" "${SYNCUP_MBSYNC_CONFIG}"
+	if checkyn "${VERBOSE}"; then
+		mbsync -V -c "${SYNCUP_MBSYNC_CONFIG}" -a
+	else
+		mbsync -c "${SYNCUP_MBSYNC_CONFIG}" -a
+	fi
+}
+
+_do_notmuch()
+{
+	vmsg "  -> using notmuch(1) configuration: %s" "${SYNCUP_NOTMUCH_CONFIG}"
+	if checkyn "${VERBOSE}"; then
+		NOTMUCH_CONFIG="${SYNCUP_NOTMUCH_CONFIG}" notmuch new --verbose
+	else
+		NOTMUCH_CONFIG="${SYNCUP_NOTMUCH_CONFIG}" notmuch new
+	fi
+}
+
+main()
+{
+	_main_t0="$(date "+%s")"
+
+	if checkyn "${SYNCUP_SKIP_PRE}"; then
+		msg "skipping pre-sync hooks"
+	else
+		msg "running pre-sync hooks:"
+		if [ -d "${SYNCUP_HOOK_DIR}/pre" ] \
+		&& ! _dir_isempty "${SYNCUP_HOOK_DIR}/pre"; then
+			_do_hooks "${SYNCUP_HOOK_DIR}/pre"
+		else
+			msg "  -> no pre-sync hooks"
+		fi
+	fi
+
+	msg "running mbsync(1):"
+	if ! _do_mbsync; then
+		fatal "mbsync(1) failure (%s); skipping post-sync hooks" "${?}"
+	fi
+
+	msg "running notmuch-new(1):"
+	if ! _do_notmuch; then
+		fatal "notmuch-new(1) failure (%s); skipping post-sync hooks" "${?}"
+	fi
+
+	if checkyn "${SYNCUP_SKIP_POST}"; then
+		msg "skipping post-sync hooks"
+	else
+		msg "running post-sync hooks:"
+		if [ -d "${SYNCUP_HOOK_DIR}/post" ] \
+		&& ! _dir_isempty "${SYNCUP_HOOK_DIR}/post"; then
+			_do_hooks "${SYNCUP_HOOK_DIR}/post"
+		else
+			msg "  -> no post-sync hooks"
+		fi
+	fi
+
+	_main_t1="$(date "+%s")"
+	msg "sync took %ss" "$((_main_t1 - _main_t0))"
+}
+
+while getopts ":C:c:H:hv" opt; do
+	case "${opt}" in
+	C)
+		SYNCUP_NOTMUCH_CONFIG="${OPTARG}"
+		;;
+	c)
+		SYNCUP_MBSYNC_CONFIG="${OPTARG}"
+		;;
+	H)
+		SYNCUP_HOOK_DIR="${OPTARG}"
+		;;
+	h)
+		printf "%s" "${syncup_help}"
+		exit 0
+		;;
+	v)
+		VERBOSE="y"
+		;;
+	*)
+		fatal "invalid option: -%s" "${OPTARG}"
+		;;
+	esac
+done
+shift "$((OPTIND - 1))"
+
+if [ "${#}" -ne 1 ]; then
+	fatal "expected arguments: <maildir-root>"
+fi
+
+if [ -e "${1}" ] && [ ! -d "${1}" ]; then
+	fatal "not a directory: %s" "${1}"
+else
+	mkdir -p "${1}" || fatal "failed to create directory: %s" "${1}"
+	cd "${1}" || fatal "failed to cd(1): %s" "${1}"
+	SYNCUP_ROOT_DIR="${1}"
+fi
+
+if [ "${SYNCUP_LOCK_FILE#/}" = "${SYNCUP_LOCK_FILE}" ]; then
+	SYNCUP_LOCK_FILE="${SYNCUP_ROOT_DIR}/${SYNCUP_LOCK_FILE}"
+fi
+
+if [ -z "${SYNCUP_HOOK_DIR}" ]; then
+	vmsg "no SYNCUP_HOOK_DIR; skipping hooks"
+	SYNCUP_SKIP_PRE="y"
+	SYNCUP_SKIP_POST="y"
+elif [ "${SYNCUP_HOOK_DIR#/}" = "${SYNCUP_HOOK_DIR}" ]; then
+	SYNCUP_HOOK_DIR="${SYNCUP_ROOT_DIR}/${SYNCUP_HOOK_DIR}"
+fi
+
+if [ ! -f "${SYNCUP_MBSYNC_CONFIG}" ]; then
+	fatal "mbsync(1) configuration does not exist: %s" "${SYNCUP_MBSYNC_CONFIG}"
+fi
+
+if [ ! -f "${SYNCUP_NOTMUCH_CONFIG}" ]; then
+	fatal "notmuch(1) configuration does not exist: %s" "${SYNCUP_NOTMUCH_CONFIG}"
+fi
+
+# shellcheck disable=SC2094
+(
+	flock -e -n 9 || fatal "failed to acquire lock: %s" "${SYNCUP_LOCK_FILE}"
+	main
+) 9>"${SYNCUP_LOCK_FILE}"

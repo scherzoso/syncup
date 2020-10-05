@@ -1,0 +1,59 @@
+= syncup(1)
+
+== Name
+
+syncup - synchronise a local maildir store with a remote
+
+== Synopsis
+
+*mbsync* [*-hv*] [*-C* _file_] [*-H* _path_] [*-c* _file_] _maildir-root_
+
+== Description
+
+Use **mbsync**(1) to synchronise a local maildir collection at _maildir-root_
+with a remote, run **notmuch-new**(1) on the synchronised local store, and run
+pre- and post-sync hooks as appropriate.
+
+=== Options
+
+*-h*::
+	Display a summary of *syncup* and its options, then exit.
+
+*-v*::
+	Enable verbose output from *syncup*, **mbsync**(1), and **notmuch-new**(1).
+	The environment variable *SYNCUP_VERBOSE* is exported for hooks to also
+	optionally produce verbose output.
+
+*-C* _file_::
+	Use _file_ as the configuration file for **notmuch**(1).
+	 +
+	Default: '**XDG_CONFIG_HOME**/notmuch/notmuch.config'
+
+*-H* _path_::
+	Search for hooks in the directory given by _path_. A relative _path_ is
+	interpreted relative to _maildir-root_.
+	 +
+	Default: _none_
+
+*-c* _file_::
+	Use _file_ as the configuration file for **mbsync**(1).
+	 +
+	Default: '**XDG_CONFIG_HOME**/mbsync/mbsyncrc'
+
+=== Hooks
+
+A '`hook`' is an executable that is called either before or after **mbsync**(1)
+and **notmuch-new**(1) are called. All hooks are executed in the root of the
+Maildir directory hierarchy with no arguments. Successful hooks are expected to
+have exit status 0. Hooks with non-zero exit status will cause *syncup* to
+immediately abort.
+
+Note that hooks which need to execute **notmuch**(1) _should_ be executed by
+**notmuch-new**(1). We export the **NOTMUCH_CONFIG** environment variable so
+these hooks don't need to find the configuration for their particular database.
+
+== See Also
+
+**mbsync**(1),
+**notmuch**(1),
+**notmuch-new**(1)

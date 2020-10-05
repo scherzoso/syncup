@@ -1,0 +1,34 @@
+#! /usr/bin/env sh
+# SPDX-License-Identifier: 0BSD
+# -----------------------------------------------------------------------------
+
+v_commit=""
+v_extra=""
+
+if command -v git >/dev/null 2>&1 && git rev-parse >/dev/null 2>&1; then
+	if [ -n "$(git tag -l)" ]; then
+		if ! git describe --exact >/dev/null 2>&1; then
+			v_extra="$(git describe --long --dirty | sed 's/.*-\([0-9]\+\)-g\([0-9a-f]\+\)-/\1.\2./;')"
+		else
+			# Exactly at a tag.
+			if ! git diff-files --quiet --ignore-submodules >/dev/null 2>&1; then
+				v_extra="dirty"
+			fi
+		fi
+	fi
+else
+	# We're in a release tarball or have no way of knowing the extra
+	# version information; so assume Makefile has the correct version.
+	:
+fi
+
+if [ -n "${v_extra}" ]; then
+	printf "V_EXTRA = %s+%s\\n" "${V_EXTRA}" "${v_extra}" >"${1:-".version.mk"}.tmp"
+	if ! cmp -s "${1:-".version.mk"}.tmp" "${1:-".version.mk"}"; then
+		mv -f "${1:-".version.mk"}.tmp" "${1:-".version.mk"}"
+	else
+		rm -f "${1:-".version.mk"}.tmp"
+	fi
+else
+	touch "${1:-".version.mk"}"
+fi

@@ -1,6 +1,6 @@
 # Maintainer: Alex Minghella <a@minghella.net>
 pkgname=syncup
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
 pkgdesc="Synchronise a local maildir store with a remote"
 arch=('any')
@@ -9,7 +9,7 @@ depends=('isync' 'notmuch')
 makedepends=('asciidoctor' 'lzip' 'make')
 options=('zipman')
 source=("https://git.minghella.net/pub/scm/${pkgname}.git/snapshot/${pkgname}-${pkgver}.tar.lz")
-sha256sums=('c941f7948774af8c8873e5f683c25579877136207245f3f9e38b49753c01e9ea')
+sha256sums=('3cf6f210aa1fd41dc3f73d5784225d4cac996711428f06828f63d2714adf83d1')
 
 build()
 {

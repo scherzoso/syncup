@@ -38,18 +38,6 @@ Options:
 : "${SYNCUP_SKIP_PRE:="n"}"
 : "${SYNCUP_VERBOSE:="n"}"
 
-if ! command -v flock >/dev/null 2>&1; then
-	fatal "unable to locate flock(1)"
-fi
-
-if ! command -v mbsync >/dev/null 2>&1; then
-	fatal "unable to locate mbsync(1)"
-fi
-
-if ! command -v notmuch >/dev/null 2>&1; then
-	fatal "unable to locate notmuch(1)"
-fi
-
 _do_printf()
 {
 	_do_printf_fmt="${1}"
@@ -202,6 +190,18 @@ main()
 	_main_t1="$(date "+%s")"
 	msg "sync took %ss" "$((_main_t1 - _main_t0))"
 }
+
+if ! command -v flock >/dev/null 2>&1; then
+	fatal "unable to locate flock(1)"
+fi
+
+if ! command -v mbsync >/dev/null 2>&1; then
+	fatal "unable to locate mbsync(1)"
+fi
+
+if ! command -v notmuch >/dev/null 2>&1; then
+	fatal "unable to locate notmuch(1)"
+fi
 
 while getopts ":C:c:H:hv" opt; do
 	case "${opt}" in

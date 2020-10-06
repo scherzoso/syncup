@@ -8,7 +8,7 @@ v_extra=""
 if command -v git >/dev/null 2>&1 && git rev-parse >/dev/null 2>&1; then
 	if [ -n "$(git tag -l)" ]; then
 		if ! git describe --exact >/dev/null 2>&1; then
-			v_extra="$(git describe --long --dirty | sed 's/.*-\([0-9]\+\)-g\([0-9a-f]\+\)-/\1.\2./;')"
+			v_extra="$(git describe --long --dirty | sed -E 's/.*-([0-9]+)-g([0-9a-f]+-?)/\1.\2/; s/-/./g')"
 		else
 			# Exactly at a tag.
 			if ! git diff-files --quiet --ignore-submodules >/dev/null 2>&1; then

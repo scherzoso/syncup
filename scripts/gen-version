@@ -2,8 +2,7 @@
 # SPDX-License-Identifier: 0BSD
 # -----------------------------------------------------------------------------
 
-v_commit=""
-v_extra=""
+export GIT_CEILING_DIRECTORIES="${PWD%/*}"
 
 if command -v git >/dev/null 2>&1 && git rev-parse >/dev/null 2>&1; then
 	if [ -n "$(git tag -l)" ]; then

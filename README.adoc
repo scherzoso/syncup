@@ -6,7 +6,7 @@ syncup - synchronise a local maildir store with a remote
 
 == Synopsis
 
-*mbsync* [*-hv*] [*-C* _file_] [*-H* _path_] [*-c* _file_] _maildir-root_
+*syncup* [*-hv*] [*-C* _file_] [*-H* _path_] [*-c* _file_] _maildir-root_
 
 == Description
 

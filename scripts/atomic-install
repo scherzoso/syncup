@@ -5,17 +5,15 @@
 
 set -e
 
-ai_help="\
-usage: ${0##*/} [-Dlr] [-m <mode>] <src> <dst>
+atomic_install_help="\
+usage: ${0##*/} [-D] [-m <mode>] <src> <dst>
 
 Install <source> atomically to <dest>.
 
 Options:
  -D           Create all parent directories.
  -h           Print this help text.
- -l           Install as a symbolic link.
  -m <mode>    Use file mode <mode> for <dst> instead of the default 0755.
- -r           Install as a relative symbolic link.
 "
 
 fatal()
@@ -25,86 +23,27 @@ fatal()
 
 	# shellcheck disable=SC2059
 	printf "fatal: ${_fatal_fmt}\\n" "${@}" >&2
-	exit 126
+	exit 1
 }
 
-modecheck()
-{
-	_mc_i=0
+mkdirp="n"
+mode="0755"
 
-	for _mc_c in $(printf "%s" "${1}" | sed 's/./& /g'); do
-		case "${_mc_c}" in
-		[0-7])
-			;;
-		*)
-			return 1
-			;;
-		esac
-
-		_mc_i="$((_mc_i + 1))"
-	done
-
-	if [ "${_mc_i}" -gt 4 ]; then
-		return 1
-	fi
-
-	return 0
-}
-
-relative()
-{
-	# ${1} MUST exist already
-	# The parent directory of ${2} MUST exist already
-
-	if [ ! -e "${1}" ]; then
-		fatal "does not exist: %s" "${1}"
-	fi
-
-	if [ ! -d "${2%/*}/" ]; then
-		fatal "directory does not exist: %s" "${2%/*}/"
-	fi
-
-	_rel_src="$(realpath "${1}")"
-	_rel_dst="$(realpath "${2}")"
-
-	_rel_com="${_rel_dst%/*}/"
-	_rel_up=""
-
-	while [ "${_rel_src#${_rel_com}}" = "${_rel_src}" ]; do
-		_rel_com="${_rel_com%/*/}/"
-		_rel_up="../${_rel_up}"
-	done
-
-	printf "%s" "${_rel_up}${_rel_src#${_rel_com}}"
-}
-
-ai_mkdirp="n"
-ai_mode="0755"
-ai_symlink="n"
-ai_symlink_rel="n"
-
-while getopts ":Dhlm:r" opt; do
+while getopts ":Dhm:" opt; do
 	case "${opt}" in
 	D)
-		ai_mkdirp="y"
+		mkdirp="y"
 		;;
 	h)
-		printf "%s\\n" "${ai_help}"
+		printf "%s" "${atomic_install_help}" >&2
 		exit 0
 		;;
-	l)
-		ai_symlink="y"
-		;;
 	m)
-		if ! modecheck "${OPTARG}"; then
+		if ! printf "%s\\n" "${OPTARG}" | grep -Eq '^[0-7]{1,4}$'; then
 			fatal "invalid mode: %s" "${OPTARG}"
 		fi
 
-		ai_mode="${OPTARG}"
-		;;
-	r)
-		ai_symlink="y"
-		ai_symlink_rel="y"
+		mode="${OPTARG}"
 		;;
 	:)
 		fatal "option requires argument: -%s" "${OPTARG}"
@@ -117,7 +56,7 @@ done
 shift $((OPTIND - 1))
 
 if [ "${#}" -ne 2 ]; then
-	fatal "two arguments required: <src> <dst>"
+	fatal "expected arguments: <src> <dst>"
 fi
 
 src="${1}"
@@ -128,25 +67,17 @@ if [ -z "${dst##*/}" ]; then
 	fatal "<dst> ends with '/': %s" "${dst}"
 fi
 
-if [ "${ai_mkdirp}" = "y" ] && [ -n "${dst%/*}" ]; then
+if [ "${mkdirp}" = "y" ] && [ -n "${dst%/*}" ]; then
 	umask 022
 	mkdir -p "${dst%/*}"
 fi
 
 set -C
 umask 077
-trap 'rm -rf ${tmp}' EXIT HUP INT QUIT TERM
+trap 'rm -rf "${tmp}"' EXIT
 
-if [ "${ai_symlink}" = "y" ]; then
-	if [ "${ai_symlink_rel}" = "y" ]; then
-		ln -s "$(relative "${src}" "${tmp}")" "${tmp}"
-	else
-		ln -s "${src}" "${tmp}"
-	fi
-else
-	cp "${src}" "${tmp}"
-	chmod "${ai_mode}" "${tmp}"
-fi
+cp "${src}" "${tmp}"
+chmod "${mode}" "${tmp}"
 
 if [ -d "${dst}" ]; then
 	fatal "<dst> is a directory: %s" "${dst}"

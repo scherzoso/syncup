@@ -127,8 +127,9 @@ _do_hooks()
 		msg "  -> %s" "${_do_hooks_h#${1}/}"
 
 		if ! (
-			export SYNCUP_VERBOSE="${SYNCUP_VERBOSE}"
 			export MAIL_DIR="${SYNCUP_ROOT_DIR}"
+			export NOTMUCH_CONFIG="${SYNCUP_NOTMUCH_CONFIG}"
+			export SYNCUP_VERBOSE="${SYNCUP_VERBOSE}"
 			exec "${_do_hooks_h}"
 		); then
 			msg "     [failure]"

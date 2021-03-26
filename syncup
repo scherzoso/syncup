@@ -130,7 +130,7 @@ _do_hooks()
 			export MAIL_DIR="${SYNCUP_ROOT_DIR}"
 			export NOTMUCH_CONFIG="${SYNCUP_NOTMUCH_CONFIG}"
 			export SYNCUP_VERBOSE="${SYNCUP_VERBOSE}"
-			exec "${_do_hooks_h}"
+			cd "${SYNCUP_ROOT_DIR}" && exec "${_do_hooks_h}"
 		); then
 			msg "     [failure]"
 			fatal "hook failure: %s" "${_do_hooks_h#${1}/}"
@@ -245,7 +245,6 @@ if [ -e "${1}" ] && [ ! -d "${1}" ]; then
 	fatal "not a directory: %s" "${1}"
 else
 	mkdir -p "${1}" || fatal "failed to create directory: %s" "${1}"
-	cd "${1}" || fatal "failed to cd(1): %s" "${1}"
 	SYNCUP_ROOT_DIR="${1}"
 fi
 

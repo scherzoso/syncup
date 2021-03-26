@@ -120,8 +120,11 @@ _dir_isempty()
 
 _do_hooks()
 {
-	find -L "${1}" -maxdepth 1 -executable -type f |
-	while read -r _do_hooks_h; do
+	for _do_hooks_h in "${1}"/..?* "${1}"/.[!.]* "${1}"/*; do
+		if [ ! -f "${_do_hooks_h}" ] || [ ! -x "${_do_hooks_h}" ]; then
+			continue
+		fi
+
 		msg "  -> %s" "${_do_hooks_h#${1}/}"
 
 		(
@@ -135,13 +138,6 @@ _do_hooks()
 			exit 126
 		fi
 	done
-
-	# Executing exit(1) above only exits the implicit subshell of the
-	# read-while loop. We need to actually stop execution of the script
-	# here.
-	if [ "${?}" -eq 126 ]; then
-		fatal "hook failure"
-	fi
 }
 
 _do_mbsync()

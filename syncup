@@ -96,11 +96,26 @@ fatal()
 
 _dir_isempty()
 {
-	if [ -n "$(find -L "${1}" -maxdepth 0 -type d -empty)" ]; then
-		return 0
-	else
-		return 1
-	fi
+	(
+		cd "${1}" || exit 2
+
+		set -- *
+		if [ -f "${1}" ]; then
+			exit 1
+		fi
+
+		set -- .[!.]*
+		if [ -f "${1}" ]; then
+			exit 1
+		fi
+
+		set -- ..?*
+		if [ -f "${1}" ]; then
+			exit 1
+		fi
+
+		exit 0
+	)
 }
 
 _do_hooks()

@@ -1,12 +1,11 @@
 #! /usr/bin/env sh
 # SPDX-License-Identifier: 0BSD
 #
-# Dependencies:
-# - date(1)
-# - find(1)
-# - flock(1)
-# - mbsync(1)
-# - notmuch(1)
+# Syncup depends on utilities specified by POSIX-1.2017 and the following:
+# - date(1) implementation that supports the %s format specifier.
+# - flock(1) to ensure that only one syncup process runs at a time.
+# - mbsync(1) for the actual synchronisation.
+# - notmuch(1) for indexing of the new mail.
 # -----------------------------------------------------------------------------
 
 syncup_help="\

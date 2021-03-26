@@ -135,7 +135,7 @@ _do_hooks()
 
 		if [ "${?}" -ne 0 ]; then
 			msg "     [failure]"
-			exit 126
+			fatal "hook failure: %s" "${_do_hooks_h#${1}/}"
 		fi
 	done
 }

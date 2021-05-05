@@ -26,8 +26,6 @@ pre- and post-sync hooks as appropriate.
 
 *-C* _file_::
 	Use _file_ as the configuration file for **notmuch**(1).
-	 +
-	Default: '**XDG_CONFIG_HOME**/notmuch/notmuch.config'
 
 *-H* _path_::
 	Search for hooks in the directory given by _path_. A relative _path_ is
@@ -37,8 +35,6 @@ pre- and post-sync hooks as appropriate.
 
 *-c* _file_::
 	Use _file_ as the configuration file for **mbsync**(1).
-	 +
-	Default: '**XDG_CONFIG_HOME**/mbsync/mbsyncrc'
 
 === Hooks
 
@@ -51,6 +47,30 @@ immediately abort.
 Note that hooks which need to execute **notmuch**(1) _should_ be executed by
 **notmuch-new**(1). We export the **NOTMUCH_CONFIG** environment variable so
 these hooks don't need to find the configuration for their particular database.
+
+== Files
+
+=== mbsync
+
+In order of preference:
+
+* **XDG_CONFIG_HOME**/mbsync/__profile__/config
+* **XDG_CONFIG_HOME**/mbsync/default/config
+* **HOME**/.mbsyncrc.__profile__
+* **HOME**/.mbsyncrc
+
+Where _profile_ is the value of *NOTMUCH_PROFILE*, if set.
+
+=== notmuch
+
+In order of preference:
+
+* **XDG_CONFIG_HOME**/notmuch/__profile__/config
+* **XDG_CONFIG_HOME**/notmuch/default/config
+* **HOME**/.notmuch-config.__profile__
+* **HOME**/.notmuch-config
+
+Where _profile_ is the value of *NOTMUCH_PROFILE*, if set.
 
 == See Also
 

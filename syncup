@@ -30,7 +30,7 @@ Options:
 
 : "${SYNCUP_HOOK_DIR:=""}"
 : "${SYNCUP_LOCK_FILE:="${XDG_RUNTIME_DIR:-"${XDG_CACHE_HOME}"}/syncup.lock"}"
-: "${SYNCUP_MBSYNC_CONFIG:="${XDG_CONFIG_HOME}/mbsync/mbsyncrc"}"
+: "${SYNCUP_MBSYNC_CONFIG:="${MBSYNC_CONFIG}"}"
 : "${SYNCUP_NOTMUCH_CONFIG:="${NOTMUCH_CONFIG}"}"
 : "${SYNCUP_ROOT_DIR:=""}"
 : "${SYNCUP_SKIP_POST:="n"}"
@@ -260,8 +260,31 @@ elif [ "${SYNCUP_HOOK_DIR#/}" = "${SYNCUP_HOOK_DIR}" ]; then
 	SYNCUP_HOOK_DIR="${SYNCUP_ROOT_DIR}/${SYNCUP_HOOK_DIR}"
 fi
 
-if [ ! -f "${SYNCUP_MBSYNC_CONFIG}" ]; then
-	fatal "mbsync(1) configuration does not exist: %s" "${SYNCUP_MBSYNC_CONFIG}"
+# To find its configuration file, mbsync(1) only looks for $HOME/.mbsyncrc. In
+# order to avoid cluttering the user's home directory, we also look for
+# a configuration file for mbsync(1) in the same way that we do for notmuch(1).
+# We're tied to both programs, so it makes sense to have roughly the same
+# directory layout for the configuration of each.
+if [ -n "${SYNCUP_MBSYNC_CONFIG}" ]; then
+	if [ ! -f "${SYNCUP_MBSYNC_CONFIG}" ]; then
+		fatal "mbsync(1) configuration does not exist: %s" \
+			"${SYNCUP_MBSYNC_CONFIG}"
+	fi
+else
+	if [ -f "${XDG_CONFIG_HOME}/mbsync/${NOTMUCH_PROFILE:-"default"}/config" ]; then
+		SYNCUP_MBSYNC_CONFIG="${XDG_CONFIG_HOME}/mbsync/${NOTMUCH_PROFILE:-"default"}/config"
+	elif [ -n "${NOTMUCH_PROFILE}" ] \
+	&& [ -f "${HOME}/.mbsyncrc.${NOTMUCH_PROFILE}" ]; then
+		SYNCUP_MBSYNC_CONFIG="${HOME}/.mbsyncrc.${NOTMUCH_PROFILE}"
+	elif [ -f "${HOME}/.mbsyncrc" ]; then
+		SYNCUP_MBSYNC_CONFIG="${HOME}/.mbsyncrc"
+	elif [ -f "${XDG_CONFIG_HOME}/mbsync/mbsyncrc" ]; then
+		SYNCUP_MBSYNC_CONFIG="${XDG_CONFIG_HOME}/mbsync/mbsyncrc"
+		msg "warning: support for an mbsync(1) configuration at '%s' is deprecated" \
+			"${SYNCUP_MBSYNC_CONFIG}"
+	else
+		fatal "unable to locate mbsync(1) configuration"
+	fi
 fi
 
 # To find its configuration file, with the release of Notmuch 0.32, notmuch(1)

@@ -6,7 +6,7 @@ syncup - synchronise a local maildir store with a remote
 
 == Synopsis
 
-*syncup* [*-hv*] [*-C* _file_] [*-H* _path_] [*-c* _file_] _maildir-root_
+*syncup* [*-C* _file_] [*-H* _path_] [*-c* _file_] [*-hv*] _maildir-root_
 
 == Description
 
@@ -15,14 +15,6 @@ with a remote, run **notmuch-new**(1) on the synchronised local store, and run
 pre- and post-sync hooks as appropriate.
 
 === Options
-
-*-h*::
-	Display a summary of *syncup* and its options, then exit.
-
-*-v*::
-	Enable verbose output from *syncup*, **mbsync**(1), and **notmuch-new**(1).
-	The environment variable *SYNCUP_VERBOSE* is exported for hooks to also
-	optionally produce verbose output.
 
 *-C* _file_::
 	Use _file_ as the configuration file for **notmuch**(1).
@@ -35,6 +27,14 @@ pre- and post-sync hooks as appropriate.
 
 *-c* _file_::
 	Use _file_ as the configuration file for **mbsync**(1).
+
+*-h*::
+	Display a summary of *syncup* and its options, then exit.
+
+*-v*::
+	Enable verbose output from *syncup*, **mbsync**(1), and **notmuch-new**(1).
+	The environment variable *SYNCUP_VERBOSE* is exported for hooks to also
+	optionally produce verbose output.
 
 === Hooks
 

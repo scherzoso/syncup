@@ -48,6 +48,36 @@ Note that hooks which need to execute **notmuch**(1) _should_ be executed by
 **notmuch-new**(1). We export the **NOTMUCH_CONFIG** environment variable so
 these hooks don't need to find the configuration for their particular database.
 
+== Environment
+
+*NOTMUCH_PROFILE*::
+	If the *-C* and *-c* options are not specified on the command line, their
+	respective environment variables are not set, and *NOTMUCH_PROFILE* is set,
+	*syncup* will use the value of *NOTMUCH_PROFILE* to determine the
+	configuration files to use for **mbsync**(1) and **notmuch**(1).
+
+*MBSYNC_CONFIG*, *SYNCUP_MBSYNC_CONFIG*::
+	Equivalent to specifying the *-c* option on the command line.
+
+*NOTMUCH_CONFIG*, *SYNCUP_NOTMUCH_CONFIG*::
+	Equivalent to specifying the *-C* option on the command line.
+
+*SYNCUP_SKIP_POST*, *SYNCUP_SKIP_PRE*::
+	If set, *syncup* will attempt to interpret *SYNCUP_SKIP_POST* and
+	*SYNCUP_SKIP_PRE* as boolean values. If true, then the corresponding set of
+	hooks is skipped.
+
+SYNCUP_HOOK_DIR::
+	Equivalent to specifying the *-H* option on the command line.
+
+SYNCUP_LOCK_FILE::
+	If set, *synup* will interpret the value of *SYNCUP_LOCK_FILE* as an
+	absolute path for the lock file to use to ensure only one *syncup* process
+	runs at a time.
+
+SYNCUP_VERBOSE::
+	Equivalent to specifying the *-v* option on the command line.
+
 == Files
 
 === mbsync

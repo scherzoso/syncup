@@ -9,7 +9,7 @@
 # -----------------------------------------------------------------------------
 
 syncup_help="\
-usage: ${0##*/} [-hv] [-C <file>] [-H <path>] [-c <file>] [<maildir-root>]
+usage: ${0##*/} [-C <file>] [-H <path>] [-c <file>] [-hv] [<maildir-root>]
 
 Use mbsync(1) to synchronise a local maildir collection with a remote, run
 notmuch-new(1) on the synchronised local store, and run appropriate pre- and
